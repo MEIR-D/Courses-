@@ -4,7 +4,7 @@ import { fileURLToPath } from "node:url";
 import * as k from "../.claude/skills/anatomy/kit/iso-kit.mjs";
 import * as G from "../.claude/skills/anatomy/kit/lathe.mjs";
 import { kitScript } from "../.claude/skills/anatomy/scripts/inline-kit.mjs";
-import { STATIONS, SAMPLES, THRESHOLD, ENTROPY_WARN } from "./model.mjs";
+import { STATIONS, SAMPLES, VECTORS, THRESHOLD, ENTROPY_WARN } from "./model.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const theme = process.argv.includes("--light") ? "light" : "dark";
@@ -59,10 +59,10 @@ function bench() {
   out.push(L(t.minor, { tone: "lo" }), L(t.major, { tone: "mid" }));
   out.push(D([at([strip.x + 2, strip.y + 3.5, 0.6]), at([strip.x + strip.w - 2, strip.y + 3.5, 0.6])], { size: 0.45 }));
   // label plate, front-left corner
-  const label = { x: -336, y: 40, w: 30, d: 20, r: 1.2 };
+  const label = { x: 300, y: 42, w: 30, d: 20, r: 1.2 };
   out.push(S(slab(label, 0, 0.8, 4), { tone: "lo" }));
   out.push(L(k.planOutline(k.insetPlan(label, 1.6), 0.8, P), { tone: "faint" }));
-  [[-331, 46, 16], [-331, 50, 11], [-331, 54, 14]].forEach(([x, y, w]) => out.push(L(k.lineOnTop([x, y], [x + w, y], 0.8, P), { tone: "lo", free: true })));
+  [[305, 48, 16], [305, 52, 11], [305, 56, 14]].forEach(([x, y, w]) => out.push(L(k.lineOnTop([x, y], [x + w, y], 0.8, P), { tone: "lo", free: true })));
   return out.join("");
 }
 add(0, -1e4, bench());
@@ -118,6 +118,43 @@ function gantry(st, x, yBack, yFront, top, extra = "") {
   const frontKey = key([x, yFront + 3, top / 2]);
   add(5, frontKey, front, { st });
   return { frontKey, beam: (more = "") => add(5, frontKey + 40, beam + more, { st }) };
+}
+
+// ---------- station 0: arrival devices (mail, USB, web) ----------
+const DEV = { mail: [-326, 56, 40], usb: [-298, 56, 34], web: [-270, 60, 46] };
+{
+  // mailbox
+  const [mx, my] = DEV.mail;
+  const box = { x: mx - 11, y: my - 9, w: 22, d: 18, r: 3 };
+  const out = [S(k.cylinder(mx, my, 6, 0, 1.6, P, 24), { tone: "lo" }), S(k.cylinder(mx, my, 2, 1.6, 18.4, P, 14), { tone: "mid", crease: "none" })];
+  out.push(S(slab(box, 20, 18, 6, 0.8), { tone: "mid", inner: L(k.sideSeam(box, 24, P, 6), { tone: "faint" }) }));
+  out.push(L(poly([[mx - 7, my + 9, 33], [mx + 7, my + 9, 33], [mx + 7, my + 9, 31], [mx - 7, my + 9, 31]]), { tone: "lo" }));
+  out.push(S(k.cylinder(mx - 4, my, 2.6, 38, 1.6, P, 18), { tone: "mid" }), `<path class="av-glow" data-glow="mail" d="${k.ring(mx - 4, my, 1.9, 39.6, P, 18)}"/>`);
+  out.push(D(k.corners(box, 3).map(([cx, cy]) => at([cx, cy, 38])), { size: 0.4 }));
+  add(5, key([mx, my, 20]), out.join(""), { st: "arrive" });
+  add(5, key([mx + 12, my, 30]), S(slab({ x: mx + 11, y: my - 4, w: 1.4, d: 2, r: 0.3 }, 22, 12, 2, 0), { tone: "mid", crease: "none" }), { st: "arrive" });
+  add(5, 0, S(slab({ x: mx + 11.2, y: my - 4, w: 1.4, d: 9, r: 0.4 }, 0, 5, 2, 0), { tone: "hi", lit: true }), { mv: "flag", st: "arrive" });
+  // USB hub with a stick
+  const [ux, uy] = DEV.usb;
+  const hub = { x: ux - 12, y: uy - 9, w: 24, d: 18, r: 2 };
+  const ho = [S(slab(hub, 0, 10, 3, 0.6), { tone: "mid", inner: L(k.sideSeam(hub, 4, P, 3), { tone: "faint" }) })];
+  ho.push(L(poly([[ux - 9, uy + 9, 7], [ux - 2, uy + 9, 7], [ux - 2, uy + 9, 5], [ux - 9, uy + 9, 5]]) + poly([[ux + 2, uy + 9, 7], [ux + 9, uy + 9, 7], [ux + 9, uy + 9, 5], [ux + 2, uy + 9, 5]]), { tone: "lo" }));
+  ho.push(L(k.planOutline({ x: ux - 5, y: uy - 3, w: 10, d: 6, r: 0.5 }, 10, P, 2), { tone: "lo" }));
+  ho.push(`<path class="av-glow" data-glow="usb" d="${k.ring(ux + 8, uy - 5, 1.3, 10, P, 14)}"/>`, D([at([ux + 8, uy - 5, 10])], { size: 0.5, tone: "lo" }));
+  add(5, key([ux, uy, 5]), ho.join(""), { st: "arrive" });
+  add(5, 0, S(slab({ x: ux - 3, y: uy - 1.6, w: 6, d: 3.2, r: 0.3 }, 0, 5, 2, 0), { tone: "lo", crease: "none" }) + S(slab({ x: ux - 4.5, y: uy - 2.5, w: 9, d: 5, r: 1.4 }, 5, 16, 3, 0.5), { tone: "hi", lit: true, inner: L(k.sideSeam({ x: ux - 4.5, y: uy - 2.5, w: 9, d: 5, r: 1.4 }, 17, P, 3), { tone: "faint" }) }) + L(k.ring(ux, uy, 1, 21, P, 12), { tone: "lo" }), { mv: "stick", st: "arrive" });
+  // globe on a stand (internet)
+  const [wx, wy, wz] = DEV.web;
+  const c = [wx, wy, wz - 10];
+  const go = [S(k.cylinder(wx, wy, 8, 0, 2, P, 32, 0.4), { tone: "lo" }), S(k.cylinder(wx, wy, 1.8, 2, wz - 19, P, 14), { tone: "mid", crease: "none" })];
+  go.push(S(G.sphereOf(c, 9, P), { tone: "mid" }));
+  const Fz = G.frameAlong(c, [0, 0, 1]);
+  const lat = Math.sqrt(81 - 20.25);
+  const arcs = [G.arcOf(Fz, 0, 9, P), G.arcOf(Fz, 4.5, lat, P, { slope: -4.5 / lat }), G.arcOf(Fz, -4.5, lat, P, { slope: 4.5 / lat })];
+  for (const a of [[1, 0, 0], [0, 1, 0], [0.7071, 0.7071, 0], [0.7071, -0.7071, 0]]) arcs.push(G.arcOf(G.frameAlong(c, a), 0, 9, P));
+  go.push(L(arcs.join(""), { tone: "lo" }));
+  go.push(S(k.cylinder(wx, wy, 1.2, wz - 1, 3, P, 12), { tone: "mid" }), `<path class="av-glow" data-glow="web" d="${k.ring(wx, wy, 1, wz + 2, P, 12)}"/>`);
+  add(5, key([wx, wy, 18]), go.join(""), { st: "arrive" });
 }
 
 // ---------- station 1: intake ----------
@@ -445,21 +482,34 @@ ${stationCss}
 .av-btn:hover{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-mid)}
 .av-btn[aria-pressed="true"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
 .av-btn kbd{font-family:var(--anatomy-mono);font-size:10.5px;color:var(--anatomy-muted);margin-inline-start:6px}
-.av-steps{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;direction:rtl}
+.av-steps{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;direction:rtl}
 .av-step{appearance:none;border:0;text-align:right;background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);color:var(--anatomy-muted);padding:8px 10px;font:inherit;font-size:12px;cursor:pointer;line-height:1.35;border-radius:0;position:relative;overflow:hidden}
 .av-step b{display:block;text-align:right;font-family:var(--anatomy-mono);font-weight:400;font-size:10.5px;letter-spacing:.06em;margin-bottom:2px}
 .av-step[data-state="done"]{color:var(--anatomy-text)}
 .av-step[data-state="now"]{color:var(--anatomy-strong);box-shadow:0 0 0 1px var(--anatomy-hi)}
 .av-step[data-state="skip"]{opacity:.45}
 .av-step i{position:absolute;inset:auto 0 0 0;height:2px;background:var(--anatomy-hi);transform-origin:right;transform:scaleX(var(--p,0))}
-.av-cols{display:grid;grid-template-columns:1.05fr 1fr;gap:14px}
+.av-cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;direction:rtl}
+.av-rtl{direction:rtl}
+.av-q{color:var(--anatomy-muted);font-size:12.5px;min-width:96px}
+.av-ico{font-size:14px;line-height:1}
+.av-log[data-mode="simple"]>div:not(.t-he){display:none}
+.av-log[data-mode="simple"] .t-he{font-size:13.5px;line-height:1.6;color:var(--anatomy-text);margin-bottom:6px}
+.av-log .t-he.t-strong{color:var(--anatomy-strong)}
+.av-log .t-he.t-bad{color:var(--anatomy-red)}
+.av-log .t-he.t-good{color:var(--anatomy-green)}
+.av-explain .av-plain{font-size:14.5px;color:var(--anatomy-strong);line-height:1.7;margin:0 0 10px}
+.av-explain .av-tech{color:var(--anatomy-muted);font-size:12px;border-top:1px solid var(--anatomy-faint);padding-top:8px;margin:0}
+.av-explain .av-tech b{font-weight:500;color:var(--anatomy-text)}
+.av-explain .av-tip{margin-top:12px;padding:10px 12px;box-shadow:0 0 0 1px var(--anatomy-mid);color:var(--anatomy-strong)}
+
 .av-card{background:var(--anatomy-card);box-shadow:0 0 0 1px var(--anatomy-faint);padding:14px 16px}
 .av-explain{direction:rtl;text-align:right}
 .av-explain h3{margin:0 0 6px;font-size:15px;color:var(--anatomy-strong);font-weight:600}
 .av-explain h3 small{font-family:var(--anatomy-mono);font-size:10.5px;color:var(--anatomy-muted);font-weight:400;margin-inline-start:8px;letter-spacing:.06em}
 .av-explain p{margin:0 0 8px}
 .av-explain .av-real{color:var(--anatomy-muted);font-size:12px;border-top:1px solid var(--anatomy-faint);padding-top:8px;margin:0}
-.av-log{font-family:var(--anatomy-mono);font-size:11px;line-height:1.55;height:236px;overflow:auto;direction:ltr;color:var(--anatomy-text);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin}
+.av-log{font-family:var(--anatomy-mono);font-size:11px;line-height:1.55;height:280px;overflow:auto;direction:ltr;color:var(--anatomy-text);white-space:pre-wrap;word-break:break-word;scrollbar-width:thin}
 .av-log div{animation:av-in .35s var(--anatomy-ease)}
 .av-log .t-mid{color:var(--anatomy-muted)}
 .av-log .t-hi{color:var(--anatomy-strong)}
@@ -470,34 +520,46 @@ ${stationCss}
 .av-title{direction:rtl;text-align:right;margin:0 0 18px}
 .av-title h1{margin:0;font-size:22px;color:var(--anatomy-strong);font-weight:600;letter-spacing:-.01em}
 .av-title p{margin:4px 0 0;color:var(--anatomy-muted)}
-@media (max-width:760px){.av-steps{grid-template-columns:repeat(3,1fr)}.av-cols{grid-template-columns:1fr}}
+@media (max-width:760px){.av-steps{grid-template-columns:repeat(4,1fr)}.av-cols{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.av-log div{animation:none}.av-glow{transition:none}}
 `;
 
 const ui = `
 <div class="av-ui">
-  <div class="av-row" role="group" aria-label="Sample file">
-    ${SAMPLES.map((s, i) => `<button class="av-btn" data-sample="${i}" aria-pressed="${i === 0}">${s.name}<kbd>${s.key}</kbd></button>`).join("")}
-    <span style="flex:1"></span>
-    <button class="av-btn" data-act="prev" aria-label="Previous station">◀<kbd>←</kbd></button>
+  <div class="av-row av-rtl" role="group" aria-label="How did the file arrive">
+    <span class="av-q">איך הקובץ הגיע?</span>
+    ${VECTORS.map((v, i) => `<button class="av-btn" data-vector="${i}" aria-pressed="${i === 0}"><span class="av-ico">${v.icon}</span> ${v.he}</button>`).join("")}
+  </div>
+  <div class="av-row av-rtl" role="group" aria-label="Which file">
+    <span class="av-q">איזה קובץ?</span>
+    ${SAMPLES.map((s, i) => `<button class="av-btn" data-sample="${i}" aria-pressed="${i === 0}">${s.he}<kbd>${s.key}</kbd></button>`).join("")}
+  </div>
+  <div class="av-row av-rtl">
+    <button class="av-btn" data-act="restart">↻ מההתחלה</button>
+    <button class="av-btn" data-act="prev" aria-label="Previous station">▶ תחנה קודמת</button>
     <button class="av-btn" data-act="play" aria-pressed="true">⏸ השהה<kbd>space</kbd></button>
-    <button class="av-btn" data-act="next" aria-label="Next station">▶<kbd>→</kbd></button>
+    <button class="av-btn" data-act="next" aria-label="Next station">תחנה הבאה ◀</button>
+    <span style="flex:1"></span>
+    <span class="av-q" style="min-width:0">יומן:</span>
+    <button class="av-btn" data-mode="simple" aria-pressed="true">בשפה פשוטה</button>
+    <button class="av-btn" data-mode="tech" aria-pressed="false">טכני</button>
   </div>
   <div class="av-steps">${STATIONS.map((s) => `<button class="av-step" data-step="${s.id}"><b dir="ltr">0${s.n} · ${s.en.toUpperCase()}</b>${s.he}<i></i></button>`).join("")}</div>
   <div class="av-cols">
-    <div class="av-card av-log" data-log aria-live="polite"></div>
     <div class="av-card av-explain" data-explain></div>
+    <div class="av-card av-log" data-log data-mode="simple" aria-live="polite"></div>
   </div>
 </div>`;
 
-const body = `<header class="av-title"><h1>אנטומיה של אנטי-וירוס</h1><p>קובץ נכנס לפס הבדיקה ומקולף שכבה אחר שכבה – כל תחנה היא מנגנון אמיתי במנוע הסריקה</p></header>` +
+const body = `<header class="av-title"><h1>אנטומיה של אנטי-וירוס</h1><p>מה קורה בתוך המחשב מהרגע שקובץ מגיע – במייל, בדיסק און קי או בהורדה – ועד שהוא נפתח או ננעל בהסגר. כל מכונה כאן היא מנגנון אמיתי של אנטי-וירוס. במציאות כל זה קורה בשבריר שנייה עד כמה שניות; כאן הכול מואט כדי שנוכל לראות.</p></header>` +
   k.plateHtml({
     fig: "Fig 1",
     title: "Antivirus scan line",
-    hint: "← → stations · space pause · 1 2 3 file · hover a machine",
+    hint: "hover a machine · click to jump · space pause",
     readout: "",
     keys: [
       { mark: "lit", label: "The file and what touches it: gate, die, gripper, pins, pusher" },
+      { mark: "dim", label: "Front left: how it arrived – mailbox, USB hub, internet globe" },
       { mark: "raised", label: "Peeled shells: ZIP crate and UPX canister, parked on the rack" },
       { mark: "red", label: "Danger: entropy above 7.2, score above 0.70, behaviour lamps" },
       { mark: "green", label: "Clean verdict" },
@@ -519,6 +581,8 @@ const CFG = {
   LAYER: Object.fromEntries(Object.entries(LAYER).map(([id, l]) => [id, { top: l.top, h: l.h }])),
   STATIONS,
   SAMPLES,
+  VECTORS,
+  DEV,
   THRESHOLD,
   ENTROPY_WARN,
   DIAL: { x: X.static + 26, y: 60, r: 15, top: 38 },
